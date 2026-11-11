@@ -10,3 +10,7 @@ CMakeUserPresets.json
 # Python
 __pycache__/
 *.pyc
+
+# Runtime data
+_SaveData/
+_Shaders/

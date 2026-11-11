@@ -45,6 +45,22 @@ debug dump into a regression corpus.
 
 See [docs/prospero/shader-corpus.md](docs/prospero/shader-corpus.md).
 
+### Shader corpus replay
+
+`shader_corpus_tool` loads a manifest, recompiles the shader and compares the
+decoded dump, IR dump and SPIR-V with the capture:
+
+```bash
+_Build/linux-no-qt/shader_corpus_tool _Shaders --out /tmp/actual
+```
+
+`tests/corpus_smoke/` is a redistributable self-test.
+
+## Controls
+
+Keyboard and gamepad defaults, mouse behaviour and emulator shortcuts are in
+[docs/prospero/key-mapping.md](docs/prospero/key-mapping.md).
+
 ## Build
 
 Headless Linux, no Qt:
