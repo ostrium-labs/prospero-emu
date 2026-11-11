@@ -32,6 +32,7 @@
 #include <cstring>
 #include <fmt/format.h>
 #include <limits>
+#include <nlohmann/json.hpp>
 #include <ranges>
 #include <span>
 #include <spirv-tools/libspirv.hpp>
@@ -130,6 +131,96 @@ void DumpShader(std::span<const uint32_t> words, const std::string& name) {
 		return;
 	}
 	file.Write(words.data(), words.size_bytes());
+}
+
+nlohmann::ordered_json ShaderDumpWords(std::span<const uint32_t> words) {
+	auto array = nlohmann::ordered_json::array();
+	for (const auto word: words) {
+		array.push_back(fmt::format("0x{:08x}", word));
+	}
+	return array;
+}
+
+void DumpShaderCorpusMetadata(const ShaderRecompiler::CompileOptions& options, ShaderType stage,
+                              uint64_t hash, uint32_t user_data_count,
+                              std::span<const uint32_t> static_state, uint32_t push_data_cursor,
+                              uint64_t id, const ShaderRecompiler::CompileResult& result) {
+	if (!Config::GraphicsDebugDumpEnabled()) {
+		return;
+	}
+
+	const auto* stage_name = ShaderRecompiler::StageName(stage);
+	const auto  stem       = fmt::format("{}_{:016x}_{:016x}", stage_name, hash, id);
+	const auto  folder     = Config::GetShaderLogFolder();
+
+	nlohmann::ordered_json metadata;
+	metadata["format"]                = 1;
+	metadata["stage"]                 = stage_name;
+	metadata["shader_hash"]           = fmt::format("0x{:016x}", hash);
+	metadata["module_id"]             = fmt::format("0x{:016x}", id);
+	metadata["wave_size"]             = options.wave_size;
+	metadata["user_data_base"]        = options.user_data_base;
+	metadata["user_data"]             = ShaderDumpWords(options.user_data);
+	metadata["back_code"]             = ShaderDumpWords(options.back_code);
+	metadata["user_data_count"]       = user_data_count;
+	metadata["static_state"]          = ShaderDumpWords(static_state);
+	metadata["push_data_start_dword"] = push_data_cursor;
+	metadata["code_file"]             = fmt::format("original/{}_{:016x}.bin", stage_name, hash);
+	metadata["spirv_file"]            = fmt::format("{}.spv", stem);
+	metadata["ir_file"]               = fmt::format("{}.ir.txt", stem);
+	metadata["decoded_file"]          = fmt::format("{}.decoded.txt", stem);
+	metadata["standalone_replay"]     = false;
+
+	if (options.input_info.compute != nullptr) {
+		const auto& compute           = *options.input_info.compute;
+		metadata["standalone_replay"] = true;
+		auto& input                   = metadata["compute_input"];
+		input["threads_num"]   = {compute.threads_num[0], compute.threads_num[1],
+		                          compute.threads_num[2]};
+		input["lds_size_dwords"]     = compute.lds_size_dwords;
+		input["scratch_size_dwords"] = compute.scratch_size_dwords;
+		input["host_subgroup_size"]  = compute.host_subgroup_size;
+		input["wave_size"]           = compute.wave_size;
+		input["async_compute"]       = compute.async_compute;
+		input["float_mode"]          = compute.float_mode;
+		input["dispatch_threads_num"] = {compute.dispatch_threads_num[0],
+		                                 compute.dispatch_threads_num[1],
+		                                 compute.dispatch_threads_num[2]};
+		input["workgroup_counts"] = {compute.workgroup_counts[0], compute.workgroup_counts[1],
+		                             compute.workgroup_counts[2]};
+		input["indirect_args_address"]      = fmt::format("0x{:016x}", compute.indirect_args_address);
+		input["group_id"]                   = {compute.group_id[0], compute.group_id[1],
+		                                       compute.group_id[2]};
+		input["dispatch_thread_dimensions"] = compute.dispatch_thread_dimensions;
+		input["lds_storage"]                = compute.lds_storage;
+		input["thread_ids_num"]             = compute.thread_ids_num;
+		input["workgroup_register"]         = compute.workgroup_register;
+		input["tg_size_en"]                 = compute.tg_size_en;
+	}
+
+	Common::File::CreateDirectories(folder);
+
+	const auto json_path = folder / fmt::format("{}.json", stem);
+	Common::File json_file(json_path);
+	if (json_file.IsInvalid()) {
+		const auto path_text = Common::PathToString(json_path);
+		LOGF_COLOR(Log::Color::BrightRed, "Can't create file: %s\n", path_text.c_str());
+		return;
+	}
+	const auto text = metadata.dump(2);
+	json_file.Write(text.data(), static_cast<uint32_t>(text.size()));
+
+	const auto write_text = [&folder, &stem](const char* extension, const std::string& text) {
+		if (text.empty()) {
+			return;
+		}
+		Common::File file(folder / fmt::format("{}.{}", stem, extension));
+		if (!file.IsInvalid()) {
+			file.Write(text.data(), static_cast<uint32_t>(text.size()));
+		}
+	};
+	write_text("ir.txt", result.ir_dump);
+	write_text("decoded.txt", result.decoded_dump);
 }
 
 void ValidateShaderSpirv(const char* stage, uint64_t shader_hash,
@@ -322,6 +413,8 @@ ShaderModule& PipelineCache::CompileModule(Program& program, const ProgramKey& k
 
 	const auto* stage = ShaderRecompiler::StageName(key.stage);
 	DumpShader(result.spirv, fmt::format("{}_{:016x}_{:016x}.spv", stage, key.hash, id));
+	DumpShaderCorpusMetadata(options, key.stage, key.hash, key.user_data_count, key.static_state,
+	                         push_data_cursor, id, result);
 	ValidateShaderSpirv(stage, key.hash, result.spirv, profile.maintenance8);
 	auto& module = program.modules.emplace_back(ShaderModule {
 	    .id             = id,
