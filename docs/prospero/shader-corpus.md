@@ -90,19 +90,30 @@ It verifies the manifest references, checks every `.spv` with `spirv-val`, and
 fails on any broken entry. `--require-replay` also fails on shaders that are not
 standalone-replayable, which is the right setting for a CI corpus.
 
-## Replay (next)
+## Replay
 
-The next step is a `shader_corpus_tool` target that:
+`shader_corpus_tool` loads one manifest or a directory of them, re-runs the
+recompiler and compares the result with the capture:
 
-1. loads a manifest,
-2. reconstructs `ShaderRecompiler::CompileOptions`,
-3. calls `TranslateProgram` and `CompileProgram`,
-4. validates the result and compares it with the captured `.spv`,
-5. fails on any difference.
+```bash
+_Build/linux-no-qt/shader_corpus_tool _Shaders --out /tmp/actual
+```
 
-Comparison is on normalized SPIR-V text (`spirv-dis`) so harmless id changes do
-not create noise. A changed output is either a deliberate improvement with a
-baseline update, or a regression.
+- the decoded ISA dump and the IR dump are compared as text,
+- SPIR-V is compared word-for-word, which is deterministic for the same input,
+- `--frontend-only` skips the compile and only checks the decoder,
+- `--capture` regenerates `.decoded.txt`, `.ir.txt` and `.spv` from a manifest;
+  use it to update a baseline deliberately, never to hide a regression,
+- a mismatch exits non-zero and writes the actual artifacts under `--out`.
+
+`tests/corpus_smoke/` is the redistributable self-test. It captures a single
+`s_endpgm` compute shader, so it exercises the manifest reader, the replay path
+and the comparison without shipping game data.
+
+Resource materialization needs descriptor memory that the manifest does not
+carry yet, so most real shaders currently replay in frontend-only mode. Full
+SPIR-V replay for them needs a captured resource snapshot (descriptor table and
+SRT reads), which is the next corpus addition.
 
 ## CI
 

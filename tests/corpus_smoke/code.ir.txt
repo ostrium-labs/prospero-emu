@@ -1,0 +1,12 @@
+CFG:
+entry_block=0 irreducible=0 unsupported=0 failure=None failure_block=4294967295
+block_0 pc=0x00000000 end=0x00000004 inst=[0,1)
+  predecessors=[] successors=[]
+  dominators=[0]
+  terminator=3 condition=always true=4294967295 false=4294967295 merge=4294967295 continue=4294967295 loop_header=0 indirect_sgpr=4294967295 indirect_selector=4294967295 indirect_targets=[] selector_values=[] expression=4294967295
+scc blocks=[0] entries=[] irreducible=0
+
+IR:
+mode=structured scratch_dwords=0
+Block $0 pc=0x00000000..0x00000000
+Block $1 pc=0x00000000..0x00000004

@@ -1,0 +1,45 @@
+{
+  "format": 1,
+  "stage": "Compute",
+  "shader_hash": "00000000deadbeef",
+  "wave_size": 64,
+  "user_data_base": 0,
+  "user_data": [],
+  "back_code": [],
+  "static_state": [],
+  "push_data_start_dword": 0,
+  "code_file": "code.bin",
+  "spirv_file": "code.spv",
+  "ir_file": "code.ir.txt",
+  "decoded_file": "code.decoded.txt",
+  "standalone_replay": true,
+  "compute_input": {
+    "threads_num": [
+      1,
+      1,
+      1
+    ],
+    "dispatch_threads_num": [
+      1,
+      1,
+      1
+    ],
+    "workgroup_counts": [
+      1,
+      1,
+      1
+    ],
+    "lds_size_dwords": 0,
+    "scratch_size_dwords": 0,
+    "host_subgroup_size": 64,
+    "wave_size": 64,
+    "async_compute": false,
+    "float_mode": 192,
+    "dispatch_thread_dimensions": false,
+    "lds_storage": false,
+    "thread_ids_num": 0,
+    "workgroup_register": 0,
+    "tg_size_en": false,
+    "indirect_args_address": 0
+  }
+}
