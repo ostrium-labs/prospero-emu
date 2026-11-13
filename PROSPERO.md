@@ -3,8 +3,11 @@
 This is the Ostrium Labs fork of [KytyPS5](https://github.com/KytyPS5/KytyPS5),
 the base for **Prospero**, a vendor-neutral PS5 emulator.
 
-The plan, architecture, roadmap and compatibility strategy live in
-[ostrium-labs/prospero](https://github.com/ostrium-labs/prospero).
+The plan, architecture, roadmap, compatibility strategy and desktop launcher
+live in the [ostrium-labs/prospero](https://github.com/ostrium-labs/prospero)
+monorepo. The launcher is at
+[`ui/`](https://github.com/ostrium-labs/prospero/tree/main/ui); it starts this
+emulator as a child process and is Apache-2.0, separate from this GPL-2.0 fork.
 
 ## Relationship to upstream
 
